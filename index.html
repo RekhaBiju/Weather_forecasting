@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Forecast</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="date"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .loading {
+            text-align: center;
+            margin-top: 20px;
+            display: none;
+        }
+        .error {
+            color: #e74c3c;
+            margin-top: 10px;
+            display: none;
+        }
+        #instructions {
+            background-color: #fef9e7;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border-left: 4px solid #f39c12;
+        }
+        code {
+            background-color: #f8f8f8;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        pre {
+            background-color: #f8f8f8;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Weather Forecast Prediction</h1>
+        
+        <form id="forecastForm">
+            <div class="form-group">
+                <label for="dateInput">Enter a date (YYYY-MM-DD):</label>
+                <input type="date" id="dateInput" name="date" required>
+            </div>
+            <button type="submit">Get Forecast</button>
+        </form>
+        
+        <div id="loading" class="loading">
+            <p>Processing forecast... Please wait.</p>
+        </div>
+        
+        <div id="error" class="error"></div>
+        
+        <div id="results" style="display: none;">
+            <h2>5-Day Weather Forecast</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Max Temp (°C)</th>
+                        <th>Min Temp (°C)</th>
+                        <th>Avg Temp (°C)</th>
+                        <th>Pressure (hPa)</th>
+                        <th>Wind Speed (m/s)</th>
+                    </tr>
+                </thead>
+                <tbody id="forecastTable">
+                    <!-- Results will be inserted here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('forecastForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Show loading, hide results and error
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+            
+            // Get the date value
+            const dateInput = document.getElementById('dateInput').value;
+            
+            // Send to server
+            fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'date=' + dateInput
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Server returned status ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Hide loading
+                document.getElementById('loading').style.display = 'none';
+                
+                if (data.success) {
+                    // Populate the table
+                    const tableBody = document.getElementById('forecastTable');
+                    tableBody.innerHTML = '';
+                    
+                    data.forecast.forEach(day => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${day.date}</td>
+                            <td>${day.tmax.toFixed(1)}</td>
+                            <td>${day.tmin.toFixed(1)}</td>
+                            <td>${day.tavg.toFixed(1)}</td>
+                            <td>${day.pres.toFixed(1)}</td>
+                            <td>${day.wspd.toFixed(1)}</td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                    
+                    // Show results
+                    document.getElementById('results').style.display = 'block';
+                } else {
+                    // Show error
+                    document.getElementById('error').textContent = 'Error: ' + data.error;
+                    document.getElementById('error').style.display = 'block';
+                }
+            })
+            .catch(error => {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').textContent = 'Error: ' + error.message;
+                document.getElementById('error').style.display = 'block';
+            });
+        });
+    </script>
+</body>
+</html>
